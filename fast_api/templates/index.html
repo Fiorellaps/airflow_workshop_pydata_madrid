@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Filter</title>
+</head>
+<body>
+    <h1>Filter Events</h1>
+    <form method="post" action="/filter">
+        <label for="country">Country:</label>
+        <select name="country" id="country">
+            {% for country in countries %}
+            <option value="{{ country }}">{{ country }}</option>
+            {% endfor %}
+        </select>
+        
+        <label for="sport">Sport:</label>
+        <select name="sport" id="sport">
+            {% for sport in sports %}
+            <option value="{{ sport }}">{{ sport }}</option>
+            {% endfor %}
+        </select>
+        
+        <label for="category">Category:</label>
+        <select name="category" id="category">
+            {% for category in categories %}
+            <option value="{{ category }}">{{ category }}</option>
+            {% endfor %}
+        </select>
+        
+        <button type="submit">Filter</button>
+    </form>
+    
+    {% if filtered_events %}
+    <h2>Filtered Events</h2>
+    <table border="1">
+        <tr>
+            <th>Event Name</th>
+            <th>Venue</th>
+            <th>Competitors</th>
+            <th>Result</th>
+        </tr>
+        {% for event in filtered_events %}
+        <tr>
+            <td>{{ event.detailed_event_name }}</td>
+            <td>{{ event.venue_name }}</td>
+            <td>{{ event.competitors }}</td>
+            <td>{{ event.result_mark }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% endif %}
+</body>
+</html>
