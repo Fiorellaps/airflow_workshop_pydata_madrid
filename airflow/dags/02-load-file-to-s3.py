@@ -28,8 +28,8 @@ with DAG(
         task_id="upload_to_s3",
         aws_conn_id='aws_default',  # The AWS connection set up in Airflow
         s3_bucket='airflow-bucket-s3-fps',  # Your target S3 bucket
-        s3_key='data/hello_world.txt',  # S3 key (file path in the bucket)
-        data=read_local_file('/home/ec2-user/hello_world.txt'),  # Local file path
+        s3_key='hello_world.txt',  # S3 key (file path in the bucket)
+        data=read_local_file('/home/hello_world.txt'),  # Local file path
     )
 
 # Setting the task in the DAG
