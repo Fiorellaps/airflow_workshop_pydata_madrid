@@ -211,7 +211,7 @@ launch_fastapi = BashOperator(
         execution_timeout=None  # Disable timeout to keep FastAPI running
 )
 ```
-
+Más información sobre qué es FastAPI https://fastapi.tiangolo.com/
 
 ## 05-email-on-finish
 
