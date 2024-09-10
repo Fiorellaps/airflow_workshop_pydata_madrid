@@ -123,4 +123,4 @@ with DAG(
     )
 
     # Set task dependencies
-    get_data >> create_json >> write_json_to_s3 >> write_json_from_s3_to_local
+    get_data >> create_json >> [write_json_to_s3, write_json_from_s3_to_local]
