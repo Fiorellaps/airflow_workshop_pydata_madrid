@@ -96,7 +96,7 @@ airflow version
 ## 1.2. Webserver
 
 <div style="color:orange">
-> airflow webserver --port 8080
+> airflow webserver --port 9090
 </div>
 
 ## 1.3. Scheduler
@@ -107,7 +107,7 @@ airflow version
 
 # 3. DAGS
 
-## 01-check_file
+## 01-check-file-dag
 
 Comprobar que un fichero existe en la ruta dada. Para ello usamos un **BashOperator** que ejecuta un script de bash.
 
@@ -143,7 +143,7 @@ Hay muchos más argumentos que se pueden ver en https://airflow.apache.org/docs/
 
 Más información en https://airflow.apache.org/docs/apache-airflow/stable/authoring-and-scheduling/timetable.html
 
-## 02-load-csv-to-s3
+## /02-load-file-to-s3.py
 
 Subir un fichero (en este caso csv) a un bucket de **AWS S3**.
 
@@ -152,78 +152,65 @@ Con este DAG aprenderemos:
 <div style="color:orange">
     
     
-- PythonOperator.
-
-- Configuración de variables.
-
-- Organización de tareas de un DAG.
-
- </div>
-
-```python
-PythonOperator(
-    task_id='upload_csv_to_gcs',
-    python_callable=upload_csv_to_gcs,
-    #op_args=[absolute_file_path, bucket_name, destination_file_path]
-    op_kwargs={
-        'file_path': absolute_file_path,
-        'bucket_name': bucket_name,
-        'destination_file_path': destination_file_path
-     }
-)
-```
-
-Más información sobre dependencia de tareas https://docs.astronomer.io/learn/managing-dependencies
-
-## 03-load-data-to-big-query
-
-Añadir datos almacenados en **Google Cloud Storage** a **Big Query**.
-
-<div style="color:orange">
-
-- GCSToBigQueryOperator.
+- S3CreateObjectOperator.
 
 - Configuración de conexiones.
 
  </div>
 
 ```python
-GCSToBigQueryOperator(
-    task_id='load_data_to_big_query',
-    bucket=bucket_name,
-    source_objects=[destination_file_path], # Todos los elementos del bucket
-    source_format='CSV', # Formato de los archivos a insertar
-    skip_leading_rows=1, # No considerar la primera fila como datos porque la primera fila son las cabeceras
-    field_delimiter=',', # Delimitador
-    destination_project_dataset_table='airflow-388217.external_data.enquestes', # id de la tabla + el nombre
-    create_disposition='CREATE_IF_NEEDED', # Crearla si no existe
-    write_disposition='WRITE_APPEND', # Añade a los datos existentes
-    bigquery_conn_id='google_cloud_default', # Valor por defecto
-    google_cloud_storage_conn_id='google_cloud_default' # Valor por defecto
+create_s3_object = S3CreateObjectOperator(
+        task_id="upload_to_s3",
+        aws_conn_id='aws_default',  # The AWS connection set up in Airflow
+        s3_bucket='airflow-bucket-s3-fps',  # Your target S3 bucket
+        s3_key='hello_world.txt',  # S3 key (file path in the bucket)
+        data=read_local_file('/home/hello_world.txt'),  # Local file path
 )
 ```
 
-Más información sobre el operador de GCP https://airflow.apache.org/docs/apache-airflow-providers-google/stable/_api/airflow/providers/google/index.html
+Más información sobre dependencia de tareas https://docs.astronomer.io/learn/managing-dependencies
 
-## 04-load-filtered-data-to-big-query
+## 03-create-json-olimpic-games
 
-Añadir datos desde una tabla de **Big Query** a otra filtrando a través de una query.
+Acceder a la API de los juegos olímpicos https://apis.codante.io/olympic-games/events, transformar los datos para generar un diccionario de países, deporte y categoría, y finalmente escribir los datos en bucket de S3 y en local.
 
 <div style="color:orange">
 
-- BigQueryExecuteQueryOperator.
+- PythonOperator.
+
+- Configuración de variables.
+  
+- Dependencia de tareas.
+  
+- Empleo de Hooks.
 
  </div>
 
 ```python
-BigQueryExecuteQueryOperator(
-    task_id='create_table_exiample',
-    sql=query,
-    destination_dataset_table=dataset_table_eixample,
-    write_disposition='WRITE_TRUNCATE', # Eliminar los datos antes de volver a escribir
-    create_disposition='CREATE_IF_NEEDED',
-    use_legacy_sql=False,
-    #bigquery_conn_id='google_cloud_default'
+create_json = PythonOperator(
+        task_id='create_json',
+        python_callable=create_json_olympic_games,
+        provide_context=True
+)
+```
+
+Más información sobre el operador de Amazon [https://airflow.apache.org/docs/apache-airflow-providers-google/stable/_api/airflow/providers/google/index.html](https://airflow.apache.org/docs/apache-airflow-providers-amazon/stable/index.html)
+
+## 04-launch-fastapi-dag
+
+Comando de bash para matar los procesos arrancados usando FastAPI y otro para arranacar la API que usa los datos generados en el DAG anterior.
+
+<div style="color:orange">
+
+- BashOperator.
+
+ </div>
+
+```python
+launch_fastapi = BashOperator(
+        task_id='launch_fastapi',
+        bash_command='cd /home/ec2-user/fast_api && nohup uvicorn main:app --host 0.0.0.0 --port 8000 --reload &',
+        execution_timeout=None  # Disable timeout to keep FastAPI running
 )
 ```
 
@@ -249,13 +236,3 @@ EmailOperator(
         dag=dag
 )
 ```
-
-## 06-remove-local-file
-
-Borrar csv de origen, un a vez se han ingestado en el bucket.
-
-<div style="color:orange">
-
-- Paralelización de tareas.
-
- </div>
